@@ -34,7 +34,7 @@ public class BaseDatos {
 /************************************REFERENCIAS*******************************************/
 /************************************CONSTRUCTOR*******************************************/
     public BaseDatos() throws IOException{
-        f = new File(INGLES);
+        f = new File(ESPAÑOL);
         cargarPreguntas(f);
         mostrarDatos();
     }
@@ -65,14 +65,14 @@ public class BaseDatos {
  
 
 /*************************************INTERFAZ*********************************************/
-    public int getNUM_LETRAS() {
+   
+/***********************************GETTER SETTERS*****************************************/
+     public int getNUM_LETRAS() {
         return NUM_LETRAS;
     }
 
     public char[] getAbc_spanish() {
         return abc_spanish;
     }
-/***********************************GETTER SETTERS*****************************************/
-    
     
 }
