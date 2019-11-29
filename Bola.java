@@ -5,6 +5,7 @@
  */
 package proyectorosco;
 
+import java.io.Serializable;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -13,7 +14,7 @@ import javax.swing.JLabel;
  *
  * @author demum
  */
-public class Bola extends JLabel{
+public class Bola extends JLabel {
     //
 /************************************PARAMETROS********************************************/
     private static int numAuxiliar = 0;
@@ -25,13 +26,16 @@ public class Bola extends JLabel{
 /*************************************ATRIBUTOS********************************************/
     private char letra;
     private char[] abecedario;
+    private char estado;        //A-Acierto, F-Fallada, N-Neutra
     
 /************************************REFERENCIAS*******************************************/
     private BaseDatos bd;
     
 /************************************CONSTRUCTOR*******************************************/
-    public Bola(BaseDatos bd){
+    public Bola(BaseDatos bd, char estado){
         this.bd = bd;
+        this.estado = estado;
+        asignarLetrasRosco();
         this.letra = abecedario[numAuxiliar];
         asignarLetra();
         
@@ -44,6 +48,15 @@ public class Bola extends JLabel{
         this.letra = abecedario[numAuxiliar];
         numAuxiliar++;
     }
+
 /*************************************INTERFAZ*********************************************/
 /***********************************GETTER SETTERS*****************************************/
+    
+    public char getLetra() {
+        return letra;
+    }
+
+    public char getEstado() {
+        return estado;
+    }
 }
