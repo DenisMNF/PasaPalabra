@@ -17,31 +17,29 @@ import javax.swing.JPanel;
  * @author Jorge
  */
 public class Vista extends JFrame{
-    public final int NBOLAS=25;
+    public final int NBOLAS=26,ALTOVENTANA=900,ANCHOVENTANA=900;
     
-    Logica log;
+    private Logica log;
     
-    ArrayList<JLabel> bolas;
+    private ArrayList<JLabel> bolas;
     
-    JPanel panelPreguntasYRespuestas,panelCentral;
+    private JPanel panelPreguntasYRespuestas,panelCentral,panelCronometro;
     
-    TextField fieldRespuestas;
+    private TextField fieldRespuestas;
     
-     JLabel textoPreguntas;
+    private JLabel textoPreguntas,textoSegundos,textoMinutos;
 
-     static double i;
+    private static double i=4.705;
      
-     int posX,posY;
+    private static int contador=0;
      
-     double x,y,r=200;
+    private int posX,posY;
      
-     static int contadorPosicion=0;
-     
-     
+    private double x,y,r=300;
      
      
-    public Vista() {
-        log=new Logica();
+    public Vista(Logica log) {
+        this.log=log;
         crearVista();
     }
 
@@ -61,7 +59,26 @@ public class Vista extends JFrame{
         
         this.setSize(900, 900);
         this.setLocation(100, 100);
+        this.setVisible(true);ç
+          
+    public void crearVista() {
+        this.setLayout(null);
+        bolas=new ArrayList<>();
+        panelCentral=new JPanel(null);
+        for (int i = 0; i < NBOLAS; i++) {
+            bolas.add(log.getBola());
+            posicionarBola(bolas.get(i));
+        }
+        panelCentral.setBounds(0, 0, ALTOVENTANA, ANCHOVENTANA);
+        panelCentral.setBackground(Color.yellow);
+        crearPanelPreguntas();
+        crearPanelCronometro();
+        this.add(panelCentral);
+        this.setSize(900, 900);
+        this.setLocation(100, 100);
         this.setVisible(true);
+        //crearMenuPreguntas();
+          
     }
 
     /**
@@ -69,13 +86,10 @@ public class Vista extends JFrame{
      * @param bola esta es la imagen que bola que se coloca
      */
     private void posicionarBola(JLabel bola) {
-        bola.setBounds(50, 50, 71, 60);
+        bola.setBounds(ALTOVENTANA/2, ANCHOVENTANA/2, 71, 60);
         this.crearEspacios(bola);
         bola.setLocation((int)x, (int)y);
         panelCentral.add(bola);
-        panelCentral.setBounds(0, 0, 900, 900);
-        //panelCentral.setBackground(Color.yellow);
-        this.add(bola);
         this.add(panelCentral);
     }
 
@@ -84,21 +98,20 @@ public class Vista extends JFrame{
      * @param bola este JLabel es la imagen de la bola que utilizo para cojer el posicionamiento de x e y;
      */
     private void crearEspacios(JLabel bola){
-         i+=0.5;
-        contadorPosicion+=15;
         x=bola.getX()+Math.cos(i)*r;
         y=bola.getY()+Math.sin(i)*r;
+        i+=0.24155;
     }
     
     /**
      * crea el formilario de la parte de abajo
      */
-    private void crearMenuPreguntas() {
+    private void crearPanelPreguntas() {
        fieldRespuestas=new TextField(10);
        textoPreguntas=new JLabel("");
        
-       fieldRespuestas.setBounds(100, 100, 50, 50);
-       textoPreguntas.setBounds(150 , 150, 100, 100);
+       fieldRespuestas.setBounds(50, 100, 50, 50);
+       textoPreguntas.setBounds(0 , 0, 100, 100);
              
        
        panelPreguntasYRespuestas=new JPanel(null);
@@ -106,7 +119,7 @@ public class Vista extends JFrame{
        panelPreguntasYRespuestas.add(fieldRespuestas);
        panelPreguntasYRespuestas.add(textoPreguntas);
        panelPreguntasYRespuestas.setBackground(Color.yellow);
-       panelPreguntasYRespuestas.setBounds(0, 0, 200, 200);
+       panelPreguntasYRespuestas.setBounds(450, 450, 200, 200);
        
        this.add(panelPreguntasYRespuestas);
        
@@ -119,6 +132,45 @@ public class Vista extends JFrame{
     private void cambiarPregunta(String textoPregunta){
         textoPreguntas.setText(textoPregunta);
         fieldRespuestas.setText("");
+    }
+    /**
+     * crea el panel de cronometro
+     */
+    private void crearPanelCronometro() {
+        textoMinutos=new JLabel();
+        textoSegundos=new JLabel("0");
+        
+        textoMinutos.setBounds(0, 50, 50, 50);
+        textoSegundos.setBounds(51, 50, 50, 50);
+        
+        panelCronometro=new JPanel(null);
+        panelCronometro.add(textoSegundos);
+        panelCronometro.add(textoMinutos);
+        
+        panelCronometro.setBounds(0, 0, 100, 100);
+        
+        this.add(panelCronometro);
+        
+        
+    }
+    
+    /**
+     * Actualiza los segundos del Cronometro
+     * @param segundos son los segundos que escriben en el JLabel
+     */
+    public void actualizarCronometroSegundos(String segundos){
+        textoSegundos.setText(segundos);
+        this.repaint();
+    }
+    
+    /**
+     * Actualiza los minutos y coloca el JLaebl de textoSegundos a 0
+     * @param minutos son los minutos que se quiere actualizar
+     */
+    public void actualizarCronometroMinutos(String minutos){
+        textoMinutos.setText(minutos);
+        textoSegundos.setText("0");
+        this.repaint();
     }
     
     
