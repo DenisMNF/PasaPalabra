@@ -1,0 +1,163 @@
+/*
+    Denis cambios realizados:
+        - He modificado el metodo getBola() para que le ordene a base de datos que asigne una imagen a la bola tras crearla. 
+          Este metodo despues sera llamado por VistaJuego a la hora de colocar las letras del rosco en la pantalla.
+ */
+package proyectorosco;
+
+/**
+ *
+ * @author demum
+ */
+
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import javax.swing.JLabel;
+import javax.swing.Timer;
+
+/**
+ *
+ * @author Jorge
+ */
+public class Logica {
+    
+/************************************PARAMETROS********************************************/
+/*************************************ATRIBUTOS********************************************/
+    private int minutos,segundos;   
+    private BaseDatos bd;   
+    private Timer coronometro;   
+    private VistaJuego vista;
+    private VistaInicio vistaIni;
+    
+/************************************REFERENCIAS*******************************************/
+/************************************CONSTRUCTOR*******************************************/
+     public Logica() throws IOException {
+        bd = new BaseDatos();
+        vistaIni=new VistaInicio(this);
+        
+        
+    }
+/***********************************METODOS CLASE******************************************/
+      /**
+     * comprueba que los segundos sean 60 
+     * en caso de sea 60 se suma un minuto, se ponen los segundos a 0 y actualiza su vista por el metodo actualizarCronometroMinutos
+     * en caso de que no sea 60 se actualiza la vista por el metodo actualizarCronometroSegundos
+     */
+    private void actualizarCronometro() {
+       if(segundos==60){
+            minutos++;
+            segundos=0;
+            vista.actualizarCronometroMinutos(String.valueOf(minutos));
+        }
+        else{
+            vista.actualizarCronometroSegundos(String.valueOf(segundos));
+        }
+    }
+    
+    /**
+     * Arranca el cronometro
+     */
+    private void empiezaCronometro() {
+        coronometro.start();
+    }
+    
+    
+/*************************************INTERFAZ*********************************************/
+     /**
+     * crea la clase cronometro y entra en un bucle infinito para que actualice el cronometro
+     */
+    public void cronometro(){
+        minutos=0;
+        segundos=0;
+        coronometro=new Timer(1000,new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    segundos++;
+                    actualizarCronometro();
+                }
+            }); 
+        empiezaCronometro();        
+    }
+    
+     
+    /**
+     * se pausa el juego en el caso de que sea necesario
+     */
+    public void pausarJuego(){
+        coronometro.stop();
+    }
+/***********************************GETTER SETTERS*****************************************/
+     public String setPregunta(String pregunta){
+        return pregunta;
+    }
+    
+    public void getRespuesta(String respuesta){
+        
+    }
+    
+    /**
+     * Crea un objeto bola y ordena a base de datos que le asigne la imagen correspondiente.
+     * @return 
+     */
+    
+    public JLabel getBola(){
+        //cambiar oara que reciba la imagen de la bola
+        Bola bola = new Bola('N');
+       switch(bola.getEstado()){
+           case 'N':
+               bola.setIcon(bd.elegirImagenAzul(bola.getLetra()));
+               return bola;
+           case 'A':
+               bola.setIcon(bd.elegirImagenVerde(bola.getLetra()));
+               return bola;
+           case 'F':
+               bola.setIcon(bd.elegirImagenRojo(bola.getLetra()));
+               return bola;
+               
+           default:
+               System.out.println("--Estado de bola erroneo--");
+               return null;
+       }
+
+    }
+   
+    
+    /*empieza quitar para 
+    ImageIcon imagen;
+    
+    JLabel label;
+    
+    JPanel bola;
+    
+    String[] letras= {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
+    
+    static int contador=0;
+    
+    public JLabel Imagen() {
+        imagen=new ImageIcon("Imagenes/Img Azul/"+letras[contador]+"_a.png");
+        contador++;
+        label=new JLabel();
+        label.setIcon(imagen);
+        return label;
+    }
+    //termina quitar para prueba*/
+
+   
+    
+    
+    
+    
+   
+
+   
+   
+
+    /**
+     * llama al metodo start de cronometro
+     */
+    
+    
+    
+}

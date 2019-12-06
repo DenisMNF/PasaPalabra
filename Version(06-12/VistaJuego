@@ -1,11 +1,16 @@
+
+package proyectorosco;
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ 06/12 Denis. Cambios Realizados: 
+    He modificado el metodo posicionarBolas() para que pida crear una bola a logica, la cual llega ya con su imagen y tamaño asignado
+    He recolocado el panel preguntas en la parte superior del frame.
+
+Problema: no se ven las imagenes 
  */
-package vistrosco;
+
 
 import java.awt.Color;
+import java.awt.Rectangle;
 import java.awt.TextField;
 import java.util.ArrayList;
 import javax.swing.JFrame;
@@ -16,61 +21,47 @@ import javax.swing.JPanel;
  *
  * @author Jorge
  */
-public class Vista extends JFrame{
+public class VistaJuego extends JFrame{
+    
+/************************************PARAMETROS********************************************/
     public final int NBOLAS=26,ALTOVENTANA=900,ANCHOVENTANA=900;
-    
-    private Logica log;
-    
-    private ArrayList<JLabel> bolas;
-    
-    private JPanel panelPreguntasYRespuestas,panelCentral,panelCronometro;
-    
-    private TextField fieldRespuestas;
-    
-    private JLabel textoPreguntas,textoSegundos,textoMinutos;
-
     private static double i=4.705;
-     
     private static int contador=0;
-     
-    private int posX,posY;
-     
-    private double x,y,r=300;
-     
-     
-    public Vista(Logica log) {
+    private final Rectangle TAM_PANEL_PREG_Y_RES = new Rectangle(600,200);
+/*************************************ATRIBUTOS********************************************/
+    
+    private Logica log;  
+    private ArrayList<JLabel> bolas;   
+    private JPanel panelPreguntasYRespuestas,panelCentral,panelCronometro;  
+    private TextField fieldRespuestas;   
+    private JLabel textoPreguntas,textoSegundos,textoMinutos;
+   
+    private int posX,posY;  
+    private double x,y,r=300;   
+    
+/************************************REFERENCIAS*******************************************/
+/************************************CONSTRUCTOR*******************************************/
+     public VistaJuego(Logica log) {
         this.log=log;
         crearVista();
     }
-
-    /**
-     * creo la vista principal
-     * 
-     */
+/***********************************METODOS CLASE******************************************/
+     
+    
+    
+    
     private void crearVista() {
-        this.setLayout(null);
-        bolas=new ArrayList<JLabel>();
-        panelCentral=new JPanel(null);
-        for (int i = 0; i < NBOLAS; i++) {
-            bolas.add(log.getBola());      
-            posicionarBola(bolas.get(i));
-        }
-        //crearMenuPreguntas();
-        
-        this.setSize(900, 900);
-        this.setLocation(100, 100);
-        this.setVisible(true);ç
-          
-    public void crearVista() {
         this.setLayout(null);
         bolas=new ArrayList<>();
         panelCentral=new JPanel(null);
+        
+        panelCentral.setBounds(0, 0, ALTOVENTANA, ANCHOVENTANA);
+        panelCentral.setBackground(Color.yellow);
         for (int i = 0; i < NBOLAS; i++) {
             bolas.add(log.getBola());
             posicionarBola(bolas.get(i));
         }
-        panelCentral.setBounds(0, 0, ALTOVENTANA, ANCHOVENTANA);
-        panelCentral.setBackground(Color.yellow);
+       
         crearPanelPreguntas();
         crearPanelCronometro();
         this.add(panelCentral);
@@ -78,25 +69,31 @@ public class Vista extends JFrame{
         this.setLocation(100, 100);
         this.setVisible(true);
         //crearMenuPreguntas();
-          
     }
-
     /**
      * se encarga de colocar el JLabel de la bola en el panel centrar 
      * @param bola esta es la imagen que bola que se coloca
      */
     private void posicionarBola(JLabel bola) {
-        bola.setBounds(ALTOVENTANA/2, ANCHOVENTANA/2, 71, 60);
+       
+        bola.setLocation(400,400);
+        panelCentral.add(bola);
+        
+        
+        /*
         this.crearEspacios(bola);
         bola.setLocation((int)x, (int)y);
         panelCentral.add(bola);
-        this.add(panelCentral);
+        panelCentral.repaint();
+        */
     }
-
-    /**
+    
+     /**
      * crea los espacio para para ponerlos en forma de circulo
      * @param bola este JLabel es la imagen de la bola que utilizo para cojer el posicionamiento de x e y;
      */
+    
+    
     private void crearEspacios(JLabel bola){
         x=bola.getX()+Math.cos(i)*r;
         y=bola.getY()+Math.sin(i)*r;
@@ -118,8 +115,9 @@ public class Vista extends JFrame{
        
        panelPreguntasYRespuestas.add(fieldRespuestas);
        panelPreguntasYRespuestas.add(textoPreguntas);
-       panelPreguntasYRespuestas.setBackground(Color.yellow);
-       panelPreguntasYRespuestas.setBounds(450, 450, 200, 200);
+       panelPreguntasYRespuestas.setBackground(Color.red);
+       panelPreguntasYRespuestas.setBounds(TAM_PANEL_PREG_Y_RES);
+       panelPreguntasYRespuestas.setLocation(200,0);
        
        this.add(panelPreguntasYRespuestas);
        
@@ -133,6 +131,7 @@ public class Vista extends JFrame{
         textoPreguntas.setText(textoPregunta);
         fieldRespuestas.setText("");
     }
+
     /**
      * crea el panel de cronometro
      */
@@ -149,15 +148,18 @@ public class Vista extends JFrame{
         
         panelCronometro.setBounds(0, 0, 100, 100);
         
-        this.add(panelCronometro);
-        
-        
+        this.add(panelCronometro);                
     }
+    
+    
+
+/*************************************INTERFAZ*********************************************/
     
     /**
      * Actualiza los segundos del Cronometro
      * @param segundos son los segundos que escriben en el JLabel
      */
+    
     public void actualizarCronometroSegundos(String segundos){
         textoSegundos.setText(segundos);
         this.repaint();
@@ -173,12 +175,8 @@ public class Vista extends JFrame{
         this.repaint();
     }
     
-    
-    
-    
-    
-    
-    
-    
+/***********************************GETTER SETTERS*****************************************/
+          
+   
     
 }
