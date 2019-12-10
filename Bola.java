@@ -3,8 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package proyectorosco;
+package pasapalabrajorge;
 
+import java.awt.Rectangle;
 import java.io.Serializable;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -17,41 +18,66 @@ import javax.swing.JLabel;
 public class Bola extends JLabel {
     //
 /************************************PARAMETROS********************************************/
-    private static int numAuxiliar = 0;
+
+    private final Rectangle TAM_BOLA = new Rectangle(70,70);
     //
-    private final ImageIcon neutro = null;
-    private final ImageIcon acierto = null;
-    private final ImageIcon error = null;
-            
+    private static int numLetraAAsignar = 0;
+
 /*************************************ATRIBUTOS********************************************/
     private char letra;
-    private char[] abecedario;
     private char estado;        //A-Acierto, F-Fallada, N-Neutra
-    
+
+    private final char[] abc_spanish  = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+
 /************************************REFERENCIAS*******************************************/
+
     private BaseDatos bd;
-    
+
 /************************************CONSTRUCTOR*******************************************/
-    public Bola(BaseDatos bd, char estado){
+
+    /**
+     * El constructor de Bola asigna una letra que corresponda segund las anteriores letras que se hayan creado.
+     * Se crean con un tamaño predefinido.
+     * @param estado 
+     */
+    public Bola(char estado, BaseDatos bd){
+        
         this.bd = bd;
         this.estado = estado;
-        asignarLetrasRosco();
-        this.letra = abecedario[numAuxiliar];
         asignarLetra();
-        
+
+        this.setBounds(TAM_BOLA);
     }
 /***********************************METODOS CLASE******************************************/
-    private void asignarLetrasRosco(){       
-        abecedario = bd.getAbc_spanish();
-    }
+
+    /**
+     * Asigna la letra que corresponda segun las letras que se hayan creado antes.
+     */
     private void asignarLetra(){
-        this.letra = abecedario[numAuxiliar];
-        numAuxiliar++;
+        this.letra = abc_spanish[numLetraAAsignar];
+        numLetraAAsignar++;
+        if(numLetraAAsignar == 25) numLetraAAsignar = 0;
     }
 
+
 /*************************************INTERFAZ*********************************************/
-/***********************************GETTER SETTERS*****************************************/
     
+    /**
+     * Cambia el estado visual de una bola.
+     * @param estado 
+     */
+    public void cambiarEstado(char estado){
+        switch(estado){
+            case 'a':
+                this.setIcon(bd.elegirImagenVerde(letra));
+                break;
+            case 'f':
+                this.setIcon(bd.elegirImagenRojo(letra));
+                
+        }
+    }
+/***********************************GETTER SETTERS*****************************************/
+
     public char getLetra() {
         return letra;
     }
