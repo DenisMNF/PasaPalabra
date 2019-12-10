@@ -10,6 +10,7 @@ package proyectorosco;
 
 import com.sun.glass.events.KeyEvent;
 import java.awt.BorderLayout;
+import java.awt.Button;
 import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.Menu;
@@ -19,12 +20,16 @@ import java.awt.MenuShortcut;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.TextField;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.WindowConstants;
 import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
@@ -42,19 +47,23 @@ public class VistaJuego extends JFrame{
     private final int X_CENTRO_ROSCO = 500;
     private final int Y_CENTRO_ROSCO = 400;
     
-    public static final String MENU_CONTACTO="Contacto";
-    public static final String MENU_SALIR="Salir";
-    public static final String MENU_EMPEZAR_PARTIDA="Empezar nueva partida";
-    public static final String MENU_GUARDAR_PARTIDA="Guardar partida";
-    public static final String MENU_CARGAR_PARTIDA="Cargar partida";
-    public static final String MENU_PAUSAR_PARTIDA="Pausar partida";
-    public static final String MENU_RETOMAR_PARTIDA="Retomar partida";
+    private final int NUM_MODOS_PREGUNTAS = 3;
+    
+    static final String MENU_CONTACTO="Contacto";
+    static final String MENU_SALIR="Salir";
+    static final String MENU_EMPEZAR_PARTIDA="Empezar nueva partida";
+    static final String MENU_GUARDAR_PARTIDA="Guardar partida";
+    static final String MENU_CARGAR_PARTIDA="Cargar partida";
+    static final String MENU_PAUSAR_PARTIDA="Pausar partida";
+    static final String MENU_RETOMAR_PARTIDA="Retomar partida";
+    static final String BOTON_COMPROBAR="Comprobar";
+    static final String BOTON_PASAPALABRA ="Pasa Palabra";
     
     
     //
     private final Rectangle TAM_PANEL_PREG_Y_RES = new Rectangle(570,300);
     private final Rectangle TAM_PANEL_CENTRAL = new Rectangle(1200, 1000);
-    private final Rectangle TAM_TXTFIELD = new Rectangle(100,30);
+    private final Rectangle TAM_TXTFIELD = new Rectangle(200,30);
     private final Rectangle TAM_PANEL_PREGUNTAS = new Rectangle(500, 90);
     private final Rectangle TAM_FRAME = new Rectangle(1500,1000);
     private final Rectangle TAM_PANEL_CRONO = new Rectangle(100, 60);
@@ -62,7 +71,7 @@ public class VistaJuego extends JFrame{
     //
     private final Point POS_TEXTO_PREGUNTAS = new Point(270,310);
     private final Point POS_PANEL_PREGUNTAS = new Point(50,100);
-    private final Point POS_TXTFIELD = new Point(100,100);
+    private final Point POS_TXTFIELD = new Point(20,170);
     private final Point POS_PANEL_CRONO = new Point(1100, 70);
     private final Point POS_PANEL_CENTRAL = new Point(20,20);
     private final Point POS_PANEL_CONTADOR = new Point(1000, 270);
@@ -70,120 +79,148 @@ public class VistaJuego extends JFrame{
 /*************************************ATRIBUTOS********************************************/
    
     private ArrayList<JLabel> bolas;   
-    private JPanel panelPreguntasYRespuestas,panelCentral,panelCronometro,panelContadorPreguntas;  
+    private JPanel panelPreguntasYRespuestas,panelCentral,panelCronometro,panelContadorPreguntas,panelPato;  
     private TextField fieldRespuestas;   
-    private JLabel textoPreguntas,textoSegundos,textoMinutos,textoPreguntasAcertadas,textoPreguntasFalladas,textoAcertadas,textoFalladas;
+    private JLabel textoPreguntas,textoSegundos,textoMinutos,textoPreguntasAcertadas,textoPreguntasFalladas,textoAcertadas,textoFalladas,labelImagenPato;
     private MenuItem menuNuevaPartida,menuGuardarPartida,menuPausarPartida,menuCargarPartida,menuSalir,menuCotacto,menuRetomarPartida;
     private Menu menuPartida,menuOtros;
     private MenuBar barraMenu;
     private MenuShortcut atajoSalir,atajoCargar,atajoNuevaPartida,atajoPausar,atajoGuardar;
+    
     private Border borde = new TitledBorder(new EtchedBorder(Color.black, Color.darkGray));
-
+    
+    private Button btn_pasaPalabra, btn_comprobar;
+    
+    public ImageIcon imagenPato=new ImageIcon(this.getClass().getResource("/Otras Imagenes/patoNegroDerecha.png"));
+    public ImageIcon imagenPatoDisparado=new ImageIcon(this.getClass().getResource("/Otras Imagenes/pajaroDisparado.png"));
+    
+    private static int posicionPato;
     private int posX,posY;  
     private double x,y,r=370;   
 
 /************************************REFERENCIAS*******************************************/
-    private Logica log;  
-    private CntrlVistaJuego control;
+    private CntrlVistaJuego control;  
 /************************************CONSTRUCTOR*******************************************/
-     public VistaJuego(Logica log) {
-        this.log=log;
+     public VistaJuego(CntrlVistaJuego control) {
+        this.control=control;
         crearVista();
-        log.cronometro();
+        this.control.cronometro();
+        crearPanelCronometro();
+        crearMenu();
+        crearPanelContador();
+        this.control.easterEggPato();
+        opcionCerrar();
+        posicionPato=0;
+        aniadirControl();
+        this.setIconImage(control.seleccionarIcono());
+        this.setVisible(true);
     }
 /***********************************METODOS CLASE******************************************/
 
 
 
-
+    /**
+      * Crea y conficura el frame y el panel central . Pinta por primera vez el rosco y crea el primer panel de preguntas.
+      */
     private void crearVista() {
         this.setLayout(null);
-        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        bolas=new ArrayList<>();
-        panelCentral=new JPanel(null);
-
-        panelCentral.setBounds(TAM_PANEL_CENTRAL);
-        panelCentral.setLocation(POS_PANEL_CENTRAL);
-        panelCentral.setBackground(Color.yellow);
-        for (int i = 0; i < NBOLAS; i++) {
-            bolas.add(log.getBola());
-            posicionarBola(bolas.get(i));
-        }
-
-        crearPanelPreguntas(1);
-        crearPanelCronometro();
-        crearMenu();
-        crearPanelContador();
-        aniadirControl();
-        this.add(panelCentral);
         this.setBounds(TAM_FRAME);
         //this.setLocation(100, 100);
-        this.setVisible(true);
+        bolas=control.getBolas();
+        panelCentral=new JPanel(null);
+        
+        panelCentral.setBounds(TAM_PANEL_CENTRAL);
+        panelCentral.setLocation(POS_PANEL_CENTRAL);
+        panelCentral.setBackground(Color.WHITE);
+        
+        pintarRosco();
+ 
+        crearPanelPreguntas(0);
+        
+        
+        this.add(panelCentral);
+        
+    
     }
     
     
     /**
-     * crea el formilario de la parte de abajo
+     * crea el formulario de la parte de abajo
      */
     private void crearPanelPreguntas(int modeloPregunta) {
        JPanel panelPregunta;
-              
+       
+       int contadorPregunta = 0;
+       
+       String textoPregunta = control.pasarPreguntas();
+
        switch(modeloPregunta){
            case 0: //Modelo pregunta respuesta.
                panelPregunta = crearPanelModeloPreguntaRespuesta();
                panelPregunta.setBorder(borde);
-               this.add(panelPregunta);
-               cambiarTextoPregunta("Hola guapa");
+               panelPregunta.setVisible(true);
+
+               panelCentral.add(panelPregunta);
+               panelCentral.repaint();
+               cambiarTextoPregunta(textoPregunta);
                break;
            case 1: //Modelo test.
                panelPregunta = crearPanelModeloTest();
                panelPregunta.setBorder(borde);
-               this.add(panelPregunta);
-               cambiarTextoPregunta("Hola guapa");
+               panelCentral.add(panelPregunta);
+               panelCentral.repaint();
+               cambiarTextoPregunta(textoPregunta);
                break;
-               
+
            case 2: //Modelo imagenes
                break;
        }
-
-
     }
     
     /**
      Devuelve un panel con la estructura de Enunciado pregunta - RadioButtons con la respuesta
      * @return El panel con el formato Pregunta - Test
      */
-    private JPanel crearPanelModeloTest(){
+     private JPanel crearPanelModeloTest(){
        textoPreguntas=new JLabel("TEXTO DE PREGUNTA AQUI");
-       textoPreguntas.setBounds(30 , 15, 200, 30);
-        
-       panelPreguntasYRespuestas=new JPanel(null);
-        
+       textoPreguntas.setBounds(new Rectangle(300,50));
+       textoPreguntas.setLocation(new Point(30,30));
 
+       panelPreguntasYRespuestas=new JPanel(null);
+       
        JPanel panelRespuestasTest = new JPanel();
        panelRespuestasTest.setLayout(new GridLayout(1,1));
-       JRadioButton res1 = new JRadioButton("Dinamarca");
-       JRadioButton res2 = new JRadioButton("Ojo");
-       JRadioButton res3 = new JRadioButton("Baguette");
        
+       String respuestasTest = control.pasarRespuestaTriple(control.getIndicadorBolaEnJuego());
+       String[] divisionAux = respuestasTest.split("/");
+       
+       JRadioButton res1 = new JRadioButton(divisionAux[0]);
+       JRadioButton res2 = new JRadioButton(divisionAux[1]);
+       JRadioButton res3 = new JRadioButton(divisionAux[2]);
+
        ButtonGroup btnGroup = new ButtonGroup();
-       
+
        btnGroup.add(res1);
        btnGroup.add(res2);
        btnGroup.add(res3);      
-       
+
        panelRespuestasTest.add(res1);
        panelRespuestasTest.add(res2);
        panelRespuestasTest.add(res3);
        panelRespuestasTest.setBounds(TAM_PANEL_PREGUNTAS);
        panelRespuestasTest.setLocation(POS_PANEL_PREGUNTAS);
        
+       panelRespuestasTest.add(btn_comprobar);
+       panelRespuestasTest.add(btn_pasaPalabra);
+       
        panelPreguntasYRespuestas.add(panelRespuestasTest);
 
        panelPreguntasYRespuestas.add(textoPreguntas);
        panelPreguntasYRespuestas.setBounds(TAM_PANEL_PREG_Y_RES);
        panelPreguntasYRespuestas.setLocation(POS_TEXTO_PREGUNTAS);
-       
+
+       aniadirCntrlBotones();
+
        return panelPreguntasYRespuestas;
     }
     
@@ -193,21 +230,35 @@ public class VistaJuego extends JFrame{
      */
     private JPanel crearPanelModeloPreguntaRespuesta(){
        fieldRespuestas=new TextField(10);
-       textoPreguntas=new JLabel("TEXTO DE PREGUNTA AQUI");
+       textoPreguntas=new JLabel();
 
        fieldRespuestas.setBounds(TAM_TXTFIELD);
        fieldRespuestas.setLocation(POS_TXTFIELD);
-       textoPreguntas.setBounds(0 , 0, 100, 100);
+       textoPreguntas.setBounds(new Rectangle(500,50));
+       textoPreguntas.setLocation(new Point(20,8));
 
 
        panelPreguntasYRespuestas=new JPanel(null);
+       
+       
+       btn_comprobar = new Button("Comprobar");
+       btn_pasaPalabra = new Button("Pasa Palabra");
+       
+       btn_comprobar.setBounds(new Rectangle(70,30));
+       btn_pasaPalabra.setBounds(new Rectangle(100,30));
+       //
+       btn_comprobar.setLocation(new Point(50,260));
+       btn_pasaPalabra.setLocation(new Point(450,260));
 
+       panelPreguntasYRespuestas.add(btn_comprobar);
+       panelPreguntasYRespuestas.add(btn_pasaPalabra);
        panelPreguntasYRespuestas.add(fieldRespuestas);
        panelPreguntasYRespuestas.add(textoPreguntas);
-       panelPreguntasYRespuestas.setBackground(Color.red);
        panelPreguntasYRespuestas.setBounds(TAM_PANEL_PREG_Y_RES);
        panelPreguntasYRespuestas.setLocation(POS_TEXTO_PREGUNTAS);
        
+       aniadirCntrlBotones();
+
        return panelPreguntasYRespuestas;
     }
 
@@ -217,6 +268,7 @@ public class VistaJuego extends JFrame{
      */
     private void cambiarTextoPregunta(String textoPregunta){
         textoPreguntas.setText(textoPregunta);
+        panelPreguntasYRespuestas.repaint();
     }
 
     /**
@@ -246,7 +298,7 @@ public class VistaJuego extends JFrame{
         panelCronometro.setBounds(TAM_PANEL_CRONO);
         panelCronometro.setLocation(POS_PANEL_CRONO);
 
-        this.add(panelCronometro);                
+        panelCentral.add(panelCronometro);                
     }
     
     /**
@@ -335,19 +387,57 @@ public class VistaJuego extends JFrame{
         panelContadorPreguntas.setLocation(POS_PANEL_CONTADOR);
         panelContadorPreguntas.setBorder(borde);
         
-        this.add(panelContadorPreguntas);
+        panelCentral.add(panelContadorPreguntas);
         
     }
+    
+    
+    /**
+     * Pinta las bolas en el panel central.
+     */
+    private void pintarRosco(){
+        for (int i = 0; i < NBOLAS; i++) {
+            posicionarBola(bolas.get(i));
+        }
+    }
+    
+    /**
+     * Añade los controladores a los botones de los paneles con preguntas. Es necesario que esten a parte de aniadirControl porque 
+     * hay que llamar a esta funcion mas de una vez. En concreto cada vez que cambiamos de pregunta y se crea un panel de preguntas nuevo.
+     */    
+    private void aniadirCntrlBotones(){
+        btn_comprobar.addActionListener(control);
+        btn_pasaPalabra.addActionListener(control);
+        
+    }
+
+/*************************************INTERFAZ*********************************************/
+
     
     public void actualizarContadorPreguntas(String acertadas,String falladas){
         textoPreguntasAcertadas.setText(acertadas);
         textoPreguntasFalladas.setText(falladas);        
     }
 
+    public void pedirALogicaComprobacion(){
+        
+    }
+    
+    /**
+     * Controla las iteraciones del juego al pasar de letra a letra. Elige aleatoriamente un formato de 
+     */
+    public void iteracionJuego(int modeloPregunta){
+        crearPanelPreguntas(modeloPregunta); 
+    }
+    
+    public void eliminarPanelPreguntaAntiguo(){
+        if(panelPreguntasYRespuestas!=null){
+            panelCentral.remove(panelPreguntasYRespuestas);
+        }
+        pintarRosco();
 
-
-/*************************************INTERFAZ*********************************************/
-
+    }
+    
     /**
      * Actualiza los segundos del Cronometro
      * @param segundos son los segundos que escriben en el JLabel
@@ -372,19 +462,15 @@ public class VistaJuego extends JFrame{
     void pausarCronometro() {
         menuRetomarPartida.setEnabled(true);
         menuPausarPartida.setEnabled(false);
-        log.pausarJuego();
     }
 
     void restaurarPartida() {
         menuRetomarPartida.setEnabled(false);
         menuPausarPartida.setEnabled(true);
-        log.empiezaCronometro();
     }
 
 
     private void aniadirControl() {
-        control=new CntrlVistaJuego(this);
-        
         menuCotacto.addActionListener(control);
         menuSalir.addActionListener(control);
         menuGuardarPartida.addActionListener(control);
@@ -394,8 +480,38 @@ public class VistaJuego extends JFrame{
       menuRetomarPartida.addActionListener(control);
     }
 
-    
+    void moveindoPato() {
+        posicionPato+=10;
+        labelImagenPato.setLocation(posicionPato, labelImagenPato.getY());
+        this.repaint();
+    }
 
+    void crearPato(int posicion) {
+        labelImagenPato=new JLabel(imagenPato);
+        labelImagenPato.setBounds(0, posicion, 61, 47);
+        labelImagenPato.addMouseListener(control);
+        panelCentral.add(labelImagenPato);
+        
+        this.repaint();
+    }
+
+    void callendoPato() {
+        labelImagenPato.setIcon(imagenPatoDisparado);
+        labelImagenPato.setLocation(labelImagenPato.getX(), labelImagenPato.getY()+15);
+        this.repaint();
+    }
+
+    public void opcionCerrar(){
+        this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                control.antesDeSalir();
+            }
+        });
+    }
+
+    
 /***********************************GETTER SETTERS*****************************************/
 
 

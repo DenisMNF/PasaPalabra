@@ -10,10 +10,12 @@ package proyectorosco;
  */
 
 
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.ArrayList;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.Timer;
 
@@ -24,14 +26,19 @@ import javax.swing.Timer;
 public class Logica {
     
 /************************************PARAMETROS********************************************/
+    private final int NUM_PREGUNTAS = 26;
 /*************************************ATRIBUTOS********************************************/
     private int minutos,segundos;   
     private BaseDatos bd;   
-    private Timer coronometro;   
-    private VistaJuego vista;
+    private Timer coronometro,patoMoviendose,patoCallendo,probabilidadPato;   
+    private CntrlVistaJuego controlJuego;
     private VistaInicio vistaIni;
     private ArrayList<String> preguntas;
-    String idioma;
+    private ArrayList<String> respuestas;
+    private ArrayList<Bola> bolas = new ArrayList();
+    private String idioma;    
+    
+    private int indicadorBolaEnJuego = 0;
 
     char dificultad;
     //contador
@@ -41,8 +48,7 @@ public class Logica {
 /************************************CONSTRUCTOR*******************************************/
      public Logica() throws IOException {
         bd = new BaseDatos();
-        vistaIni=new VistaInicio(this);
-        
+        crearVistaInicio();
     }
 /***********************************METODOS CLASE******************************************/
       /**
@@ -54,10 +60,10 @@ public class Logica {
        if(segundos==60){
             minutos++;
             segundos=0;
-            vista.actualizarCronometroMinutos(String.valueOf(minutos));
+            controlJuego.actualizarCronometroMinutos(String.valueOf(minutos));
         }
         else{
-            vista.actualizarCronometroSegundos(String.valueOf(segundos));
+            controlJuego.actualizarCronometroSegundos(String.valueOf(segundos));
         }
     }
     
@@ -67,25 +73,39 @@ public class Logica {
     public void empiezaCronometro() {
         coronometro.start();
     }
+    
     public void mostrarCarga(){
         VistaCarga vistaCarrga=new VistaCarga(this);
        vistaCarrga.empezarIterar();
     }
     
     public void empezarPartida() throws IOException{
-           preguntas=bd.cargarPreguntas(idioma, dificultad);
-            vista=new VistaJuego(this);
+            bd.cargarPreguntasYRespuestas(idioma, dificultad);            
+            
+            preguntas = bd.getPreguntas();
+
+            controlJuego=new CntrlVistaJuego(this);
+
             respuestasAcertadas=0;
             respuestasFalladas=0;
             actualizarContadorPreguntas();
        
     }
     
-    private void actualizarContadorPreguntas() {
-        vista.actualizarContadorPreguntas(String.valueOf(respuestasAcertadas), String.valueOf(respuestasFalladas));
+    public void crearVistaInicio(){
+        vistaIni=new VistaInicio(this);
     }
-
-   
+    
+    private void actualizarContadorPreguntas() {
+        controlJuego.actualizarContadorPreguntas(String.valueOf(respuestasAcertadas), String.valueOf(respuestasFalladas));
+    }
+    
+    public int rng(int max, int min) {        
+        int num;
+        num = (int) (Math.random() * max) + min;
+        return num;
+    }
+    
     
     
 /*************************************INTERFAZ*********************************************/
@@ -104,13 +124,67 @@ public class Logica {
             }); 
         empiezaCronometro();        
     }
+     
+    /**
+     * AUN POR IMPLEMENTAR: comprueba si las respuestas son correctas
+     * @param respuesta 
+     */
+    public void comprobarRespuesta(String respuesta){
+        respuestas = new ArrayList<String>();
+        
+    }
     
+    public void easterEggPato(){
+        patoMoviendose=new Timer(500,new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    controlJuego.moveindoPato();
+                }
+            });
+        patoCallendo=new Timer(250,new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    controlJuego.callendoPato();
+                }
+            });
+        probabilidadPato=new Timer(2000,new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    if(rng(100, 0)<2){
+                        controlJuego.crearPato(rng(500,0));
+                        patoMoviendose.start();
+                        pararProbabilidadPato();
+                    }
+                }
+            });
+        probabilidadPato.start();
+        
+    }
      
     /**
      * se pausa el juego en el caso de que sea necesario
      */
     public void pausarJuego(){
         coronometro.stop();
+    }
+    
+   public void pararProbabilidadPato(){
+       probabilidadPato.stop();
+   }
+   
+   public void pararmoverPatoPato(){
+       probabilidadPato.stop();
+   }
+   
+   public void patoCayendo(){
+       patoMoviendose.stop();
+       patoCallendo.start();
+   }
+   
+   void pararPato() {
+       probabilidadPato.stop();
+       patoMoviendose.stop();
+       patoCallendo.stop();
     }
     
     
@@ -120,29 +194,29 @@ public class Logica {
         return pregunta;
     }
     
-    public void getRespuesta(String respuesta){
-        
-    }
     
     /**
      * Crea un objeto bola y ordena a base de datos que le asigne la imagen correspondiente.
      * @return 
-     */
-    
+     */    
     public JLabel getBola(){
         //cambiar oara que reciba la imagen de la bola
-        Bola bola = new Bola('N');
+        
+        Bola bola = new Bola('N', bd);
        switch(bola.getEstado()){
            case 'N':
                bola.setIcon(bd.elegirImagenAzul(bola.getLetra()));
+               bolas.add(bola);
                return bola;
            case 'A':
                bola.setIcon(bd.elegirImagenVerde(bola.getLetra()));
+               bolas.add(bola);
                return bola;
            case 'F':
                bola.setIcon(bd.elegirImagenRojo(bola.getLetra()));
+               bolas.add(bola);
                return bola;
-               
+
            default:
                System.out.println("--Estado de bola erroneo--");
                return null;
@@ -150,47 +224,43 @@ public class Logica {
 
     }
     
+    
+    /**
+     * Devuelve una pregunta segun el indice que marque el indicador del juego.
+     * @return Devuelve la pregunta 
+     */
+    public String pasarPreguntas(){
+        String pregunta = preguntas.get(indicadorBolaEnJuego);
+        indicadorBolaEnJuego++;
+        return pregunta;
+    }
+    
+    /**
+     * Pasa un String con las respuestas del modo test en el formato res1/res2/res3
+     * @param indiceRespuesta El indice que marca que respuesta deseamos coger.
+     * @return 
+     */
+    public String pasarRespuestaTriple(int indiceRespuesta){
+        String respuesta = bd.getRespuestasTriple().get(indiceRespuesta);
+        return respuesta;
+    }
+
+    
     public void setIdioma(String idioma) {
         this.idioma = idioma;
     }
 
     public void setDificultad(char dificultad) {
         this.dificultad = dificultad;
+    }    
+    
+    public int getIndicadorBolaEnJuego() {
+        return indicadorBolaEnJuego;
     }
     
-    /*empieza quitar para 
-    ImageIcon imagen;
-    
-    JLabel label;
-    
-    JPanel bola;
-    
-    String[] letras= {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
-    
-    static int contador=0;
-    
-    public JLabel Imagen() {
-        imagen=new ImageIcon("Imagenes/Img Azul/"+letras[contador]+"_a.png");
-        contador++;
-        label=new JLabel();
-        label.setIcon(imagen);
-        return label;
+    public Image seleccionarIcono() {
+        Image icono;
+        return  icono = new ImageIcon(this.getClass().getResource("/Otras Imagenes/Icon.png")).getImage();
     }
-    //termina quitar para prueba*/
 
-    
-    
-    
-    
-   
-
-   
-   
-
-    /**
-     * llama al metodo start de cronometro
-     */
-    
-    
-    
 }

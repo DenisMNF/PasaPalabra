@@ -20,7 +20,7 @@ class ControladorAsegurarseSalir implements ActionListener{
     }
     
             
-            @Override
+    @Override
     public void actionPerformed(ActionEvent ae) {
         if(ae.getActionCommand().equals("Si")){
             System.exit(0);

@@ -76,6 +76,8 @@ public class VistaInicio extends JFrame{
         panelNombre.add(introducirNombre);
         
         panelNombre.setBounds(0,0,150, 200);
+        
+        this.setIconImage(log.seleccionarIcono());
         this.add(panelNombre);
         
     }
@@ -166,10 +168,10 @@ public class VistaInicio extends JFrame{
 
 /*************************************INTERFAZ*********************************************/
         
-        public void lanzarVistaJuego(){
+        /*public void lanzarVistaJuego(){
             vistaJuego = new VistaJuego(log);
             dispose();
-        }
+        }*/
 
 /***********************************GETTER SETTERS*****************************************/
     

@@ -22,6 +22,12 @@ public class VistaAsegurarseSalir extends JDialog{
     
     ControladorAsegurarseSalir controlSalir;
 
+    /**
+     * constructor 
+     * @param frame
+     * @param string
+     * @param bln 
+     */
     public VistaAsegurarseSalir(Frame frame, String string, boolean bln) {
         super(frame, string, bln);
         this.setLayout(null);
@@ -46,6 +52,7 @@ public class VistaAsegurarseSalir extends JDialog{
         setSize(400, 400);
         this.add(panelAsegurarse);
         this.setVisible(true);
+        this.setLocationRelativeTo(null);
     }
 
 }

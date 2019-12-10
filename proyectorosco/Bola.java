@@ -26,8 +26,7 @@ public class Bola extends JLabel {
     private final char[] abc_spanish  = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
     
 /************************************REFERENCIAS*******************************************/
-
-    
+    private BaseDatos bd;
 /************************************CONSTRUCTOR*******************************************/
     
     /**
@@ -35,11 +34,12 @@ public class Bola extends JLabel {
      * Se crean con un tamaño predefinido.
      * @param estado 
      */
-    public Bola( char estado){
-
+     public Bola(char estado, BaseDatos bd){
+        
+        this.bd = bd;
         this.estado = estado;
         asignarLetra();
-        
+
         this.setBounds(TAM_BOLA);
     }
 /***********************************METODOS CLASE******************************************/
@@ -47,12 +47,22 @@ public class Bola extends JLabel {
     private void asignarLetra(){
         this.letra = abc_spanish[numLetraAAsignar];
         numLetraAAsignar++;
+        if(numLetraAAsignar == abc_spanish.length) numLetraAAsignar = 0;
     }
-
+    
 
 /*************************************INTERFAZ*********************************************/
+    public void cambiarEstado(char estado){
+        switch(estado){
+            case 'a':
+                this.setIcon(bd.elegirImagenVerde(letra));
+                break;
+            case 'f':
+                this.setIcon(bd.elegirImagenRojo(letra));
+                
+        }
+    }
 /***********************************GETTER SETTERS*****************************************/
-    
     public char getLetra() {
         return letra;
     }

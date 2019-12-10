@@ -36,6 +36,8 @@ public class VistaCarga extends JFrame{
         this.logica=logica;
         crearVista();
         this.pack();
+        this.setIconImage(logica.seleccionarIcono());
+        this.setLocationRelativeTo(null);
         this.setVisible(true);
     }
 
@@ -56,7 +58,6 @@ public class VistaCarga extends JFrame{
                      }
                     else{
                         pararIterar();
-                        
                         try {
                             logica.empezarPartida();
                             VistaCarga.this.dispose();
