@@ -1,0 +1,1722 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import javax.swing.ImageIcon;
+
+
+/**
+ *
+ * @author demum
+ */
+public class BaseDatos {
+    
+/************************************PARAMETROS********************************************/
+    private final String PATH_ESPAÑOL = "questions/Es/";
+    private final String PATH_INGLES = "questions/En/";
+    private final String FILE_ESPAÑOL_FACIL = "spanish.txt";
+    private final String FILE_ESPAÑOL_DIFICIL = "spanish_dificil.txt";
+    private final String FILE_ENGLISH_EASY = "english.txt";
+    private final String FILE_ENGLISH_HARD = "english_hard.txt";
+
+    private final String path_puntuaciones = "historico_puntuaciones.txt";
+    private final String path_partidasGuardadas = "saves/";
+    //
+    private final int NUM_LETRAS = 26;
+    
+    //
+
+/*************************************ATRIBUTOS********************************************/
+    private ArrayList<String> preguntas;
+    private ArrayList<String> respuestasSimple;
+    private ArrayList<String> respuestasTriple;
+    //
+    private File idioma_file;
+    private File puntuaciones_file = new File(path_puntuaciones);
+    private File partidasGuardadas_file = new File(path_partidasGuardadas);
+
+    private static int numControlBola = 0;
+
+
+/************************************REFERENCIAS*******************************************/
+/************************************CONSTRUCTOR*******************************************/
+    public BaseDatos() throws IOException{
+
+
+    }
+
+/***********************************METODOS CLASE******************************************/
+    
+
+/*************************************INTERFAZ*********************************************/
+    
+    /**
+     * Metodo que carga las preguntas que aparecerán en la vista del juego desde un archivo. 
+     * @param f archivo desde el que se cargarán las preguntas
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public void cargarPreguntasYRespuestas(String idioma,char dificultad) throws FileNotFoundException, IOException{
+        //
+
+        File file = null;
+
+        switch(idioma){
+            case "español":
+                if(dificultad == 'f'){
+                    file = new File(PATH_ESPAÑOL+FILE_ESPAÑOL_FACIL);
+                }else{
+                    file = new File(PATH_ESPAÑOL+FILE_ESPAÑOL_DIFICIL);
+                }
+                break;
+            case "english":
+                if(dificultad == 'f'){
+                    file = new File(PATH_INGLES+FILE_ENGLISH_EASY);
+                }else{
+                    file = new File(PATH_INGLES+FILE_ENGLISH_HARD);
+                }
+                break;
+        }
+
+
+        preguntas = new ArrayList<String>();
+        respuestasSimple = new ArrayList<String>();
+        respuestasTriple = new ArrayList<String>();
+       
+        BufferedReader lector = new BufferedReader( new FileReader(file));
+        //
+        String[] divisionAux;
+        String linea = lector.readLine();
+        int contadorLineas = 0;
+        
+        while(contadorLineas < NUM_LETRAS){
+            //
+            divisionAux = linea.split("/");
+            preguntas.add(divisionAux[0]);
+            respuestasSimple.add(divisionAux[1]);
+            respuestasTriple.add(divisionAux[1]+"/"+divisionAux[2]+"/"+divisionAux[3]);
+            linea = lector.readLine();
+            
+            contadorLineas++;
+        }
+
+        lector.close(); 
+
+    }
+    
+    
+    /**
+     * Registra una puntuación en el registro histórico de puntuaciones del juego.
+     * @param puntuacion puntuación que va a ser guardada.
+     * @throws IOException 
+     */
+    
+    
+    public void registrarPuntuacionEnHistorico(String puntuacion) throws IOException{
+
+        if(!puntuaciones_file.exists()){
+            //
+            puntuaciones_file.createNewFile();
+        }
+        PrintWriter escritor = new PrintWriter ( new BufferedWriter ( new FileWriter(puntuaciones_file,true)));
+
+        escritor.println(puntuacion);
+        escritor.close();
+    }
+    
+
+    /**
+     * Carga las puntuaciones historicas guardadas en el juego para mostrarlas en vista.
+     * @return  devuelve los datos de puntuaciones históricas.
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public ArrayList<String> cargarPuntuacionesDeHistorico() throws FileNotFoundException, IOException{
+        BufferedReader lector = new BufferedReader( new FileReader(puntuaciones_file));
+
+        ArrayList<String> datosRecogidos = new ArrayList<String>();
+
+        String linea = lector.readLine();
+        while( linea != null){
+            datosRecogidos.add(linea);
+            linea = lector.readLine();
+        }
+        lector.close();
+        return datosRecogidos;
+    }
+    
+
+    /**
+     * Borra todos los datos de las puntuaciones históricas del juego. 
+     */
+    public void limpiarHistoricoPuntuaciones(){
+        if(puntuaciones_file.exists()){
+            puntuaciones_file.delete();
+        }
+    }
+
+    /**
+     * Recibe una partida que quiere ser guardada en un fichero. Para ello este método serializa el objeto partida, convirtiendolo en una cadena de bits. 
+     * Escribe esta cadena en un archivo saves/nombre_partida
+     * @param partidaAGuardar Partida que quiere ser guardada
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    
+    
+    public void serializarPartida(Partida partidaAGuardar) throws FileNotFoundException, IOException{
+        File nuevo = new File(path_partidasGuardadas+partidaAGuardar.getNombrePartida());
+
+        FileOutputStream fos = new FileOutputStream(nuevo);
+        ObjectOutputStream oos = new ObjectOutputStream(fos);
+
+        oos.writeObject(partidaAGuardar);
+        oos.close();
+        fos.close();
+    }
+
+    /**
+     * Carga un archivo que contiene la serialización de un objeto partida. Lo convierte al objeto de nuevo y lo devuelve.
+     * @param nombrePartidaACargar nombre de la partida que queremos cargar.
+     * @return objeto partida reconstruido.
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws ClassNotFoundException 
+     */
+    
+    
+    public Partida desSerializarPartida(String nombrePartidaACargar) throws FileNotFoundException, IOException, ClassNotFoundException{
+
+        FileInputStream fis = new FileInputStream(path_partidasGuardadas+nombrePartidaACargar);
+        ObjectInputStream ois = new ObjectInputStream(fis);
+
+        Partida partidaCargada = (Partida) ois.readObject();
+
+        ois.close();
+        fis.close();
+
+        return partidaCargada;
+
+
+    }
+    
+    
+    /**
+     * Devuelve la imagen en su version azul de la letra que recibe por parámetro.
+     * @param letra letra de la que queremos la imagen azul
+     * @return 
+     */
+    
+     public ImageIcon elegirImagenAzul(char letra){
+       ImageIcon icon = new ImageIcon(this.getClass().getResource("/Azules/"+letra+"_a.png"));
+       return icon;       
+    }
+     
+     
+     /**
+     * Devuelve la imagen en su version verde de la letra que recibe por parámetro.
+     * @param letra letra de la que queremos la imagen verde
+     * @return 
+     */
+     
+    public ImageIcon elegirImagenVerde(char letra){
+       ImageIcon icon = new ImageIcon(this.getClass().getResource("/Verdes/"+letra+"_v.png"));
+       return icon;    
+
+    }
+    
+    
+    /**
+     * Devuelve la imagen en su version roja de la letra que recibe por parámetro.
+     * @param letra letra de la que queremos la imagen roja
+     * @return 
+     */
+    
+    public ImageIcon elegirImagenRojo(char letra){
+       ImageIcon icon = new ImageIcon(this.getClass().getResource("/Rojas/"+letra+"_r.png"));
+       return icon;    
+
+    }
+
+
+
+
+/***********************************GETTER SETTERS*****************************************/
+     public int getNUM_LETRAS() {
+        return NUM_LETRAS;
+    }
+
+    public ArrayList<String> getPreguntas() {
+        return preguntas;
+    }
+
+    public ArrayList<String> getRespuestasSimple() {
+        return respuestasSimple;
+    }
+
+    public ArrayList<String> getRespuestasTriple() {
+        return respuestasTriple;
+    }
+     
+
+
+
+    
+}
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+import java.awt.Rectangle;
+import java.io.Serializable;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+
+/**
+ *
+ * @author demum
+ */
+public class Bola extends JLabel {
+    //
+/************************************PARAMETROS********************************************/
+
+    private final Rectangle TAM_BOLA = new Rectangle(70,70);
+    //
+    private static int numLetraAAsignar = 0;
+
+/*************************************ATRIBUTOS********************************************/
+    private char letra;
+    private char estado;        //A-Acierto, F-Fallada, N-Neutra
+
+    private final char[] abc_spanish  = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+
+/************************************REFERENCIAS*******************************************/
+
+    private BaseDatos bd;
+
+/************************************CONSTRUCTOR*******************************************/
+
+    /**
+     * El constructor de Bola asigna una letra que corresponda segund las anteriores letras que se hayan creado.
+     * Se crean con un tamaño predefinido.
+     * @param estado 
+     */
+    public Bola(char estado, BaseDatos bd){
+        
+        this.bd = bd;
+        this.estado = estado;
+        asignarLetra();
+
+        this.setBounds(TAM_BOLA);
+    }
+/***********************************METODOS CLASE******************************************/
+
+    private void asignarLetra(){
+        this.letra = abc_spanish[numLetraAAsignar];
+        numLetraAAsignar++;
+        if(numLetraAAsignar == 25) numLetraAAsignar = 0;
+    }
+
+
+/*************************************INTERFAZ*********************************************/
+    
+    public void cambiarEstado(char estado){
+        switch(estado){
+            case 'a':
+                this.setIcon(bd.elegirImagenVerde(letra));
+                break;
+            case 'f':
+                this.setIcon(bd.elegirImagenRojo(letra));
+                
+        }
+    }
+/***********************************GETTER SETTERS*****************************************/
+
+    public char getLetra() {
+        return letra;
+    }
+
+    public char getEstado() {
+        return estado;
+    }
+}
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+/**
+ *
+ * @author Jorge
+ */
+class ControladorAsegurarseSalir implements ActionListener{
+    VistaAsegurarseSalir vistaSalir;
+
+    public ControladorAsegurarseSalir(VistaAsegurarseSalir vistaSalir) {
+        this.vistaSalir = vistaSalir;
+    }
+
+
+            @Override
+    public void actionPerformed(ActionEvent ae) {
+        if(ae.getActionCommand().equals("Si")){
+            System.exit(0);
+        }
+        else{
+            vistaSalir.dispose();
+        }
+    }
+
+}
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+/*
+09-12 Jorge Cambios Realizados: 
+    - Este es un controlador PROVISIONAL si tienes uno mejor se cambia 
+    - simplemente recoje los datos y pasa a la siguiente vista siempre que se introduzca un nomrbe
+ */
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * 
+ * @author Jorge
+ */
+public class CntrlVistaInicio implements ActionListener{
+
+    String idioma;
+    char dificultad;
+    VistaInicio vistaInicio;
+
+    /**
+     * contructor del controlador de la vista inicio
+     * @param vistaInicio es la vista inicio en el que se compruevan los datos
+     */
+    public CntrlVistaInicio(VistaInicio vistaInicio) {
+        this.vistaInicio = vistaInicio;
+    }
+
+    /**
+     * se comprueba el estado de la dificultad y el del idioma despues comprueba que se tenga un nombre 
+     * @param ae 
+     */
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+        comprobarDificultad();
+        comprobarIdioma();
+        if (comprobarNombre()) {
+            try {
+                vistaInicio.empezarPartida(getIdioma(),getDificultad());
+            } catch (IOException ex) {
+                Logger.getLogger(CntrlVistaInicio.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    /**
+     * se selecciona el idioma que se va a jugar
+     */
+    public void comprobarIdioma(){
+        if(vistaInicio.getIdiomaEspaniol().getState()){
+            setIdioma("español");
+        }
+        else{
+            setIdioma("english");
+        }
+
+    }
+
+    /**
+     * se selecciona el dificultad a la que se va a jugar
+     */
+    public void comprobarDificultad(){
+        if(vistaInicio.getDificultadFacil().getState()){
+            setDificultad('f');
+        }
+        else{
+            setDificultad('d');
+        }
+    }
+
+    /**
+     * se comprueva que el nomrbe no este vacio
+     * @return true en caso de que el nombre este relleno 
+     *              false si el nombre esta vacio
+     */
+    private boolean comprobarNombre() {
+        if(vistaInicio.getIntroducirNombre().getText().equals("")){
+            return false;
+        }
+        return true;
+    }
+
+
+    public void setIdioma(String idioma) {
+        this.idioma = idioma;
+    }
+
+    public void setDificultad(char dificultad) {
+        this.dificultad = dificultad;
+    }
+
+    public String getIdioma() {
+        return idioma;
+    }
+
+    public char getDificultad() {
+        return dificultad;
+    }
+
+}
+/*
+ * TODOS LOS METODOS DEL MENU SERAN LLAMADOS DESDE AQUI 
+ */
+package pasapalabrajorge;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import static pasapalabrajorge.VistaJuego.MENU_CARGAR_PARTIDA;
+import static pasapalabrajorge.VistaJuego.MENU_CONTACTO;
+import static pasapalabrajorge.VistaJuego.MENU_EMPEZAR_PARTIDA;
+import static pasapalabrajorge.VistaJuego.MENU_GUARDAR_PARTIDA;
+import static pasapalabrajorge.VistaJuego.MENU_PAUSAR_PARTIDA;
+import static pasapalabrajorge.VistaJuego.MENU_RETOMAR_PARTIDA;
+import static pasapalabrajorge.VistaJuego.MENU_SALIR;
+import static pasapalabrajorge.VistaJuego.BOTON_COMPROBAR;
+import static pasapalabrajorge.VistaJuego.BOTON_PASAPALABRA;
+
+
+/**
+ *
+ * @author Jorge
+ */
+public class CntrlVistaJuego implements ActionListener{
+
+    private VistaJuego vistaJuego;
+    private VistaAsegurarseSalir asegurarseSalir;
+    private Logica log;
+
+    public CntrlVistaJuego(VistaJuego vistaJuego, Logica log) {
+        this.vistaJuego = vistaJuego;
+        this.log = log;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+
+        switch(ae.getActionCommand()){
+            case MENU_CONTACTO:
+                pausarPartida();
+                new VistaContactoModal(vistaJuego, "Contacto", true);
+                restaurarPartida();
+            break;
+            case MENU_SALIR:
+                pausarPartida();
+                asegurarseSalir=new VistaAsegurarseSalir(vistaJuego, "Salir", true);
+                restaurarPartida();
+            break;    
+            case MENU_EMPEZAR_PARTIDA:
+
+            break;
+            case MENU_GUARDAR_PARTIDA:
+
+            break;    
+            case MENU_CARGAR_PARTIDA:
+
+            break;    
+            case MENU_PAUSAR_PARTIDA:
+                pausarPartida();
+            break;
+            case MENU_RETOMAR_PARTIDA:
+                restaurarPartida();
+            break;
+            
+            case BOTON_COMPROBAR:
+                vistaJuego.eliminarPanelPreguntaAntiguo();
+                vistaJuego.iteracionJuego();
+                break;
+               
+            case BOTON_PASAPALABRA:
+                vistaJuego.eliminarPanelPreguntaAntiguo();
+                vistaJuego.iteracionJuego();
+                break;
+                
+            default:
+                System.err.println("OPCION NO IMPLEMENTADA");
+        }
+    }
+
+    public void restaurarPartida(){
+        vistaJuego.restaurarPartida();
+    }
+
+    public void pausarPartida(){
+        vistaJuego.pausarCronometro();
+    }
+
+}
+/*
+    Jorge cambios realizados:
+        - he hecho que la logica lleve el contador de aciertos y fallos y los muestra a la vista
+ */
+package pasapalabrajorge;
+
+/**
+ *
+ * @author demum
+ */
+
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.util.ArrayList;
+import javax.swing.JLabel;
+import javax.swing.Timer;
+
+/**
+ *
+ * @author Jorge
+ */
+public class Logica {
+
+/************************************PARAMETROS********************************************/
+    private final int NUM_PREGUNTAS = 26;
+/*************************************ATRIBUTOS********************************************/
+    private int minutos,segundos;   
+    private BaseDatos bd;   
+    private Timer coronometro;   
+    private VistaJuego vista;
+    private VistaInicio vistaIni;
+    private ArrayList<String> preguntas;
+    private ArrayList<String> respuestas;
+    private ArrayList<Bola> bolas = new ArrayList();
+    private String idioma;
+    //
+    private int indicadorBolaEnJuego = 0;
+
+    char dificultad;
+    //contador
+    int respuestasAcertadas,respuestasFalladas;
+
+/************************************REFERENCIAS*******************************************/
+/************************************CONSTRUCTOR*******************************************/
+     public Logica() throws IOException {
+        bd = new BaseDatos();
+        vistaIni=new VistaInicio(this);
+
+    }
+/***********************************METODOS CLASE******************************************/
+      /**
+     * comprueba que los segundos sean 60 
+     * en caso de sea 60 se suma un minuto, se ponen los segundos a 0 y actualiza su vista por el metodo actualizarCronometroMinutos
+     * en caso de que no sea 60 se actualiza la vista por el metodo actualizarCronometroSegundos
+     */
+    private void actualizarCronometro() {
+       if(segundos==60){
+            minutos++;
+            segundos=0;
+            vista.actualizarCronometroMinutos(String.valueOf(minutos));
+        }
+        else{
+            vista.actualizarCronometroSegundos(String.valueOf(segundos));
+        }
+    }
+
+    /**
+     * Arranca el cronometro
+     */
+    public void empiezaCronometro() {
+        coronometro.start();
+    }
+    public void mostrarCarga(){
+        VistaCarga vistaCarrga=new VistaCarga(this);
+       vistaCarrga.empezarIterar();
+    }
+
+    public void empezarPartida() throws IOException{
+            bd.cargarPreguntasYRespuestas(idioma, dificultad);
+            preguntas = bd.getPreguntas();
+            vista=new VistaJuego(this);
+            respuestasAcertadas=0;
+            respuestasFalladas=0;
+            actualizarContadorPreguntas();
+
+    }
+
+    private void actualizarContadorPreguntas() {
+        vista.actualizarContadorPreguntas(String.valueOf(respuestasAcertadas), String.valueOf(respuestasFalladas));
+    }
+    
+    
+
+
+
+
+/*************************************INTERFAZ*********************************************/
+     /**
+     * crea la clase cronometro y entra en un bucle infinito para que actualice el cronometro
+     */
+    public void cronometro(){
+        minutos=0;
+        segundos=0;
+        coronometro=new Timer(1000,new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    segundos++;
+                    actualizarCronometro();
+                }
+            }); 
+        empiezaCronometro();        
+    }
+    
+    public void comprobarRespuesta(String respuesta){
+        respuestas = new ArrayList<String>();
+        
+    }
+
+
+    /**
+     * se pausa el juego en el caso de que sea necesario
+     */
+    public void pausarJuego(){
+        coronometro.stop();
+    }
+
+    public void getRespuesta(String respuesta){
+
+    }
+
+    /**
+     * Crea un objeto bola y ordena a base de datos que le asigne la imagen correspondiente.
+     * @return 
+     */
+
+    public JLabel getBola(){
+        //cambiar oara que reciba la imagen de la bola
+        
+        Bola bola = new Bola('N', bd);
+       switch(bola.getEstado()){
+           case 'N':
+               bola.setIcon(bd.elegirImagenAzul(bola.getLetra()));
+               bolas.add(bola);
+               return bola;
+           case 'A':
+               bola.setIcon(bd.elegirImagenVerde(bola.getLetra()));
+               bolas.add(bola);
+               return bola;
+           case 'F':
+               bola.setIcon(bd.elegirImagenRojo(bola.getLetra()));
+               bolas.add(bola);
+               return bola;
+
+           default:
+               System.out.println("--Estado de bola erroneo--");
+               return null;
+       }
+
+    }
+    public String pasarPregYRespDeIteracion(){
+        String pregunta = preguntas.get(indicadorBolaEnJuego);
+        indicadorBolaEnJuego++;
+        return pregunta;
+    }
+    
+    public void comprobarRespuesta(String respuesta, int posicionLetra){
+        
+    }
+
+
+
+/***********************************GETTER SETTERS*****************************************/
+    
+     
+     
+
+    
+    public void setIdioma(String idioma) {
+        this.idioma = idioma;
+    }
+
+    public void setDificultad(char dificultad) {
+        this.dificultad = dificultad;
+    }
+
+    /*empieza quitar para 
+    ImageIcon imagen;
+    
+    JLabel label;
+    
+    JPanel bola;
+    
+    String[] letras= {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
+    
+    static int contador=0;
+    
+    public JLabel Imagen() {
+        imagen=new ImageIcon("Imagenes/Img Azul/"+letras[contador]+"_a.png");
+        contador++;
+        label=new JLabel();
+        label.setIcon(imagen);
+        return label;
+    }
+    //termina quitar para prueba*/
+
+
+
+
+
+
+
+
+
+
+    /**
+     * llama al metodo start de cronometro
+     */
+
+
+
+}
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+
+/**
+ *
+ * @author demum
+ */
+public class Partida implements Serializable {
+    
+   
+    
+/************************************PARAMETROS********************************************/
+/*************************************ATRIBUTOS********************************************/
+    private String nombrePartida;
+    private String[][] progresoRosco;
+    private String puntuacion;
+/************************************REFERENCIAS*******************************************/
+/************************************CONSTRUCTOR*******************************************/
+    public Partida(String nombrePartida, String[][] progresoRosco, String puntuacion){
+        this.nombrePartida = nombrePartida;
+        this.progresoRosco = progresoRosco;
+        this.puntuacion = puntuacion;
+    }
+
+  
+/***********************************METODOS CLASE******************************************/
+/*************************************INTERFAZ*********************************************/
+/***********************************GETTER SETTERS*****************************************/
+    public String getNombrePartida() {
+      return nombrePartida;
+    }
+
+    public String getPuntuacion() {
+        return puntuacion;
+    }
+    
+}
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+import java.io.IOException;
+/**
+ *
+ * @author demum
+ */
+public class PasaPalabraJorge {
+
+    
+
+
+
+
+    public static void main(String[] args) throws IOException {
+        new Logica();
+    }
+}
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+import java.awt.Frame;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+/**
+ *
+ * @author Jorge
+ */
+public class VistaAsegurarseSalir extends JDialog{
+    JLabel mensaje;
+    JButton botonSi,botonNo;
+    JPanel panelAsegurarse;
+
+    ControladorAsegurarseSalir controlSalir;
+
+    public VistaAsegurarseSalir(Frame frame, String string, boolean bln) {
+        super(frame, string, bln);
+        this.setLayout(null);
+        controlSalir=new ControladorAsegurarseSalir(this);
+
+        mensaje=new JLabel("¿Estas segur de que quieres salir?");
+        mensaje.setBounds(75, 50, 200, 200);
+        botonSi=new JButton("Si");
+        botonSi.setBounds(75, 200, 75, 25);
+        botonNo=new JButton("No");
+        botonNo.setBounds(200, 200, 75, 25);
+
+        botonSi.addActionListener(controlSalir);
+        botonNo.addActionListener(controlSalir);
+
+        panelAsegurarse=new JPanel(null);
+        panelAsegurarse.add(mensaje);
+        panelAsegurarse.add(botonSi);
+        panelAsegurarse.add(botonNo);
+        panelAsegurarse.setBounds(0, 0, 400, 400);
+
+        setSize(400, 400);
+        this.add(panelAsegurarse);
+        this.setVisible(true);
+        this.setLocationRelativeTo(null);
+    }
+
+}
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+/*
+ *Vista que simula carga  
+ */
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.SwingConstants;
+import javax.swing.Timer;
+
+/**
+ *
+ * @author Jorge
+ */
+public class VistaCarga extends JFrame{
+
+    Logica logica;
+   JProgressBar barraCarga;
+   JPanel panelCarga;
+   Timer iterador;
+   int numeroActual=0;
+   boolean terminadoCarga;
+
+    public VistaCarga(Logica logica) {
+        this.logica=logica;
+        crearVista();
+        this.pack();
+        this.setLocationRelativeTo(null);
+        this.setVisible(true);
+    }
+
+    public void crearVista() {
+        barraCarga=new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
+        barraCarga.setValue(0);
+        barraCarga.setStringPainted(true);
+
+        panelCarga=new JPanel();
+        panelCarga.add(barraCarga);
+        panelCarga.setBackground(Color.yellow);
+
+        iterador=new Timer(10,new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    if (numeroActual <= 100) {
+                        barraCarga.setValue(numeroActual); 
+                     }
+                    else{
+                        pararIterar();
+
+                        try {
+                            logica.empezarPartida();
+                            VistaCarga.this.dispose();
+                        } catch (IOException ex) {
+                            Logger.getLogger(VistaCarga.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    numeroActual+=1;
+               } 
+            }); 
+
+        this.add(panelCarga);
+    }
+
+    public void empezarIterar(){
+        iterador.start();
+    }
+
+    public void pararIterar(){
+        iterador.stop();
+    }
+
+
+
+
+}
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+import java.awt.Frame;
+import java.awt.Rectangle;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+
+/**
+ *
+ * @author Jorge
+ */
+public class VistaContactoModal extends JDialog{
+    JLabel mensaje=new JLabel("Denis y Jorge");
+    
+    private Rectangle TAM_VENTANA_MODAL = new Rectangle(100,50);
+
+    public VistaContactoModal(Frame frame, String string, boolean bln) {
+        super(frame, string, bln);
+        this.add(mensaje);
+        this.setVisible(true);
+        this.setLocationRelativeTo(null);
+        this.setBounds(TAM_VENTANA_MODAL);
+    }
+
+
+}
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+/*
+09/12 Jorge. Cambios Realizados: 
+    -esta vista llama a logica al querer pasar a la siguiente vista 
+    -esta vista desaparece despues de llamar a la siguiente vista
+ */
+
+import java.awt.Checkbox;
+import java.awt.CheckboxGroup;
+import java.awt.GridLayout;
+import java.awt.TextField;
+import java.io.IOException;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+/**
+ *NOMBRE,DIFICULTAD,IDIOMA
+ * @author Jorge
+ */
+public class VistaInicio extends JFrame{
+
+/************************************PARAMETROS********************************************/
+/*************************************ATRIBUTOS********************************************/
+    private CheckboxGroup grupoIdioma,grupoDificultad;
+    private Checkbox idiomaEspaniol,idiomaIngles,dificultadDificil,dificultadFacil; 
+    private JLabel textoDificultad,textoIdioma,textoNombre; 
+    private JPanel panelDificultad,panelIdioma,panelNombre;
+    private TextField introducirNombre;
+    private JButton botonEmpezar;
+    //
+    private VistaJuego vistaJuego;
+    private CntrlVistaInicio cntrl;
+
+/************************************REFERENCIAS*******************************************/
+
+    private Logica log;
+/************************************CONSTRUCTOR*******************************************/
+     public VistaInicio(Logica log) {
+         this.log = log;
+         empezarVistaInicio();
+         cntrl = new CntrlVistaInicio(this);
+         añadirEscuchadores();
+
+    }
+
+/***********************************METODOS CLASE******************************************/
+      private void empezarVistaInicio() {
+        this.setLayout(new GridLayout(4, 1));
+
+        this.setResizable(false);
+
+        crearParteNombre();
+        crearParteDificultad();
+        crearParteIdioma();
+        crearBoton();
+
+        this.setLocation(800,230);
+        this.setSize(350, 600);
+        this.setVisible(true);
+    }
+
+       private void crearParteNombre() {
+        textoNombre=new JLabel("Introduce el nombre");
+        introducirNombre=new TextField();
+
+        panelNombre=new JPanel(null);
+
+        textoNombre.setBounds(20, 10, 200,20 );
+        introducirNombre.setBounds(40, 35, 200, 25);
+
+        panelNombre.add(textoNombre);
+        panelNombre.add(introducirNombre);
+
+        panelNombre.setBounds(0,0,150, 200);
+        this.add(panelNombre);
+
+    }
+
+        private void crearParteIdioma() {
+        textoIdioma=new JLabel("Idioma");
+        textoIdioma.setBounds(20, 10, 200,20);
+
+        grupoIdioma=new CheckboxGroup();
+
+        idiomaEspaniol=new Checkbox();
+        idiomaIngles=new Checkbox();
+
+        idiomaEspaniol.setLabel("Español ");
+        idiomaIngles.setLabel("Ingles ");
+
+        idiomaEspaniol.setState(true);
+        idiomaIngles.setState(false);
+
+        idiomaEspaniol.setCheckboxGroup(grupoIdioma);
+        idiomaIngles.setCheckboxGroup(grupoIdioma);
+
+        idiomaEspaniol.setBounds(40, 50,100,20);
+        idiomaIngles.setBounds(40, 75,100,20);
+
+        panelIdioma=new JPanel(null);
+
+        panelIdioma.add(textoIdioma);
+        panelIdioma.add(idiomaEspaniol);
+        panelIdioma.add(idiomaIngles);
+
+        panelIdioma.setBounds(0,200,100, 100);
+
+        this.add(panelIdioma);
+    }
+
+        private void crearParteDificultad() {
+        textoDificultad=new JLabel("Dificultad");
+        textoDificultad.setBounds(20, 0,75,20);
+
+        grupoDificultad=new CheckboxGroup();
+
+        dificultadFacil=new Checkbox();
+        dificultadDificil=new Checkbox();
+
+        dificultadFacil.setLabel("Facil ");
+        dificultadDificil.setLabel("Dificil ");
+
+        dificultadFacil.setState(true);
+        dificultadDificil.setState(false);
+
+        dificultadFacil.setCheckboxGroup(grupoDificultad);
+        dificultadDificil.setCheckboxGroup(grupoDificultad);
+
+        dificultadFacil.setBounds(40, 50,100,20);
+        dificultadDificil.setBounds(40, 75,100,20);
+
+        panelDificultad=new JPanel(null);
+
+        panelDificultad.add(textoDificultad);
+        panelDificultad.add(dificultadFacil);
+        panelDificultad.add(dificultadDificil);
+
+        panelDificultad.setBounds(0,100,100, 100);
+
+        this.add(panelDificultad);
+    }
+
+        private void crearBoton() {
+        botonEmpezar=new JButton("Emepezar");
+
+        botonEmpezar.setBounds(3, 3, 5, 5);
+
+        this.add(botonEmpezar);
+
+    }
+
+        private void añadirEscuchadores(){
+            botonEmpezar.addActionListener(cntrl);
+        }
+
+       public void empezarPartida(String idioma,char dificultad) throws IOException{
+           log.setDificultad(dificultad);
+           log.setIdioma(idioma);
+           log.mostrarCarga();
+           this.dispose();
+       }
+
+/*************************************INTERFAZ*********************************************/
+
+        public void lanzarVistaJuego(){
+            vistaJuego = new VistaJuego(log);
+            dispose();
+        }
+
+/***********************************GETTER SETTERS*****************************************/
+
+
+    public Checkbox getIdiomaEspaniol() {
+        return idiomaEspaniol;
+    }
+
+    public Checkbox getIdiomaIngles() {
+        return idiomaIngles;
+    }
+
+    public Checkbox getDificultadDificil() {
+        return dificultadDificil;
+    }
+
+    public Checkbox getDificultadFacil() {
+        return dificultadFacil;
+    }
+
+    public TextField getIntroducirNombre() {
+        return introducirNombre;
+    }
+
+
+}
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package pasapalabrajorge;
+
+
+
+import com.sun.glass.events.KeyEvent;
+import java.awt.BorderLayout;
+import java.awt.Button;
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.Menu;
+import java.awt.MenuBar;
+import java.awt.MenuItem;
+import java.awt.MenuShortcut;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.TextField;
+import java.util.ArrayList;
+import javax.swing.ButtonGroup;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+
+/**
+ *
+ * @author Jorge
+ */
+public class VistaJuego extends JFrame{
+
+/************************************PARAMETROS********************************************/
+
+    private final int NBOLAS=26,ALTOVENTANA=1000,ANCHOVENTANA=1000;
+    private static double i=4.705;
+    private final int X_CENTRO_ROSCO = 500;
+    private final int Y_CENTRO_ROSCO = 400;
+    //
+    private final int NUM_MODOS_PREGUNTAS = 3;
+
+    static final String MENU_CONTACTO="Contacto";
+    static final String MENU_SALIR="Salir";
+    static final String MENU_EMPEZAR_PARTIDA="Empezar nueva partida";
+    static final String MENU_GUARDAR_PARTIDA="Guardar partida";
+    static final String MENU_CARGAR_PARTIDA="Cargar partida";
+    static final String MENU_PAUSAR_PARTIDA="Pausar partida";
+    static final String MENU_RETOMAR_PARTIDA="Retomar partida";
+    static final String BOTON_COMPROBAR="Comprobar";
+    static final String BOTON_PASAPALABRA ="Pasa Palabra";
+    //
+    private final Rectangle TAM_PANEL_PREG_Y_RES = new Rectangle(570,300);
+    private final Rectangle TAM_PANEL_CENTRAL = new Rectangle(1200, 1000);
+    private final Rectangle TAM_TXTFIELD = new Rectangle(200,30);
+    private final Rectangle TAM_PANEL_PREGUNTAS = new Rectangle(500, 90);
+    private final Rectangle TAM_FRAME = new Rectangle(1500,1000);
+    private final Rectangle TAM_PANEL_CRONO = new Rectangle(100, 60);
+    private final Rectangle TAM_PANEL_CONTADOR = new Rectangle(150, 60);
+    //
+    private final Point POS_TEXTO_PREGUNTAS = new Point(270,310);
+    private final Point POS_PANEL_PREGUNTAS = new Point(50,100);
+    private final Point POS_TXTFIELD = new Point(20,170);
+    private final Point POS_PANEL_CRONO = new Point(1100, 70);
+    private final Point POS_PANEL_CENTRAL = new Point(20,20);
+    private final Point POS_PANEL_CONTADOR = new Point(1000, 270);
+
+/*************************************ATRIBUTOS********************************************/
+
+    private ArrayList<JLabel> bolas;   
+    private JPanel panelPreguntasYRespuestas,panelCentral,panelCronometro,panelContadorPreguntas, panelAuxiliarParaBorrado;  
+    private TextField fieldRespuestas;   
+    private JLabel textoPreguntas,textoSegundos,textoMinutos,textoPreguntasAcertadas,textoPreguntasFalladas,textoAcertadas,textoFalladas;
+    private MenuItem menuNuevaPartida,menuGuardarPartida,menuPausarPartida,menuCargarPartida,menuSalir,menuCotacto,menuRetomarPartida;
+    private Menu menuPartida,menuOtros;
+    private MenuBar barraMenu;
+    private MenuShortcut atajoSalir,atajoCargar,atajoNuevaPartida,atajoPausar,atajoGuardar;
+    private Border borde = new TitledBorder(new EtchedBorder(Color.black, Color.darkGray));
+    private Button btn_pasaPalabra, btn_comprobar;
+    //
+    private int posX,posY;  
+    private double x,y,r=370;   
+
+/************************************REFERENCIAS*******************************************/
+    private Logica log;  
+    private CntrlVistaJuego control;
+
+    
+/************************************CONSTRUCTOR*******************************************/
+     public VistaJuego(Logica log) {
+        this.log=log;
+        crearVista();
+        
+        log.cronometro();
+        crearPanelCronometro();
+        crearMenu();
+        crearPanelContador();
+        
+        aniadirControl();
+        aniadirCntrlBotones();
+        
+    }
+/***********************************METODOS CLASE******************************************/
+
+    private void crearVista() {
+        this.setLayout(null);
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setBounds(TAM_FRAME);
+        //this.setLocation(100, 100);
+        this.setVisible(true);
+        bolas=new ArrayList<>();
+        panelCentral=new JPanel(null);
+
+        
+        
+        panelCentral.setBounds(TAM_PANEL_CENTRAL);
+        panelCentral.setLocation(POS_PANEL_CENTRAL);
+        panelCentral.setBackground(Color.WHITE);
+        
+        pintarRosco();
+ 
+        crearPanelPreguntas(0);
+        
+        
+        this.add(panelCentral);
+        
+    }
+
+
+    /**
+     * crea el formulario de la parte de abajo
+     */
+    private void crearPanelPreguntas(int modeloPregunta) {
+       JPanel panelPregunta;
+       
+       int contadorPregunta = 0;
+       
+       String textoPregunta = log.pasarPregYRespDeIteracion();
+
+       switch(modeloPregunta){
+           case 0: //Modelo pregunta respuesta.
+               panelPregunta = crearPanelModeloPreguntaRespuesta();
+               panelPregunta.setBorder(borde);
+               panelPregunta.setVisible(true);
+
+               panelCentral.add(panelPregunta);
+               panelCentral.repaint();
+               cambiarTextoPregunta(textoPregunta);
+               break;
+           case 1: //Modelo test.
+               panelPregunta = crearPanelModeloTest();
+               panelPregunta.setBorder(borde);
+               panelCentral.add(panelPregunta);
+               panelCentral.repaint();
+               cambiarTextoPregunta(textoPregunta);
+               break;
+
+           case 2: //Modelo imagenes
+               break;
+       }
+    }
+    
+
+    /**
+     Devuelve un panel con la estructura de Enunciado pregunta - RadioButtons con la respuesta
+     * @return El panel con el formato Pregunta - Test
+     */
+    private JPanel crearPanelModeloTest(){
+       textoPreguntas=new JLabel("TEXTO DE PREGUNTA AQUI");
+       textoPreguntas.setBounds(new Rectangle(300,50));
+       textoPreguntas.setLocation(new Point(30,30));
+
+       panelPreguntasYRespuestas=new JPanel(null);
+       
+       JPanel panelRespuestasTest = new JPanel();
+       panelRespuestasTest.setLayout(new GridLayout(1,1));
+       JRadioButton res1 = new JRadioButton("Dinamarca");
+       JRadioButton res2 = new JRadioButton("Ojo");
+       JRadioButton res3 = new JRadioButton("Baguette");
+
+       ButtonGroup btnGroup = new ButtonGroup();
+
+       btnGroup.add(res1);
+       btnGroup.add(res2);
+       btnGroup.add(res3);      
+
+       panelRespuestasTest.add(res1);
+       panelRespuestasTest.add(res2);
+       panelRespuestasTest.add(res3);
+       panelRespuestasTest.setBounds(TAM_PANEL_PREGUNTAS);
+       panelRespuestasTest.setLocation(POS_PANEL_PREGUNTAS);
+
+       panelPreguntasYRespuestas.add(panelRespuestasTest);
+
+       panelPreguntasYRespuestas.add(textoPreguntas);
+       panelPreguntasYRespuestas.setBounds(TAM_PANEL_PREG_Y_RES);
+       panelPreguntasYRespuestas.setLocation(POS_TEXTO_PREGUNTAS);
+
+       return panelPreguntasYRespuestas;
+    }
+
+    /**
+     * Devuelve un panel con la estructura de Enunciado pregunta - Txtfield con la respuesta
+     * @return El panel con el formato Pregunta - Respuesta
+     */
+    private JPanel crearPanelModeloPreguntaRespuesta(){
+       fieldRespuestas=new TextField(10);
+       textoPreguntas=new JLabel();
+
+       fieldRespuestas.setBounds(TAM_TXTFIELD);
+       fieldRespuestas.setLocation(POS_TXTFIELD);
+       textoPreguntas.setBounds(new Rectangle(500,50));
+       textoPreguntas.setLocation(new Point(20,8));
+
+
+       panelPreguntasYRespuestas=new JPanel(null);
+       
+       btn_comprobar = new Button("Comprobar");
+       btn_pasaPalabra = new Button("Pasa Palabra");
+       
+       btn_comprobar.setBounds(new Rectangle(70,30));
+       btn_pasaPalabra.setBounds(new Rectangle(100,30));
+       //
+       btn_comprobar.setLocation(new Point(50,260));
+       btn_pasaPalabra.setLocation(new Point(450,260));
+
+       panelPreguntasYRespuestas.add(btn_comprobar);
+       panelPreguntasYRespuestas.add(btn_pasaPalabra);
+       panelPreguntasYRespuestas.add(fieldRespuestas);
+       panelPreguntasYRespuestas.add(textoPreguntas);
+       panelPreguntasYRespuestas.setBounds(TAM_PANEL_PREG_Y_RES);
+       panelPreguntasYRespuestas.setLocation(POS_TEXTO_PREGUNTAS);
+       
+       aniadirCntrlBotones();
+
+       return panelPreguntasYRespuestas;
+    }
+
+    /**
+     * metodo para cambiar las preguntas y coloca el textFiels de respuestas vacio 
+     * @param textoPregunta esta es la nueva pregunta que se quiere mostrr
+     */
+    private void cambiarTextoPregunta(String textoPregunta){
+        textoPreguntas.setText(textoPregunta);
+        panelPreguntasYRespuestas.repaint();
+    }
+
+    /**
+     * crea el panel de cronometro
+     */
+    private void crearPanelCronometro() {
+        textoMinutos=new JLabel();
+        textoSegundos=new JLabel("0");
+
+        textoMinutos.setBounds(new Rectangle(20,20));
+        textoSegundos.setBounds(new Rectangle(20,20));
+        textoMinutos.setLocation(new Point(25,22));
+        textoSegundos.setLocation(new Point(70,22));
+
+        JLabel separacionMinSeg = new JLabel(":");
+        separacionMinSeg.setSize(10,10);
+        separacionMinSeg.setLocation(new Point(52,26));
+
+        panelCronometro=new JPanel(null);
+        panelCronometro.add(textoSegundos);
+        panelCronometro.add(textoMinutos);
+        panelCronometro.add(separacionMinSeg);
+        panelCronometro.setBorder(borde);
+
+
+        panelCronometro.setLayout(new BorderLayout());
+        panelCronometro.setBounds(TAM_PANEL_CRONO);
+        panelCronometro.setLocation(POS_PANEL_CRONO);
+
+        this.add(panelCronometro);                
+    }
+
+    /**
+     * Crea el menu del frame.
+     */
+    private void crearMenu() {
+       // menuNuevaPartida,menuGuardarPartida,menuPausarPartida,menuSalir
+       atajoNuevaPartida=new MenuShortcut(KeyEvent.VK_N);
+       menuNuevaPartida=new MenuItem(MENU_EMPEZAR_PARTIDA,atajoNuevaPartida);
+
+       atajoGuardar=new MenuShortcut(KeyEvent.VK_F5);
+       menuGuardarPartida=new MenuItem(MENU_GUARDAR_PARTIDA,atajoGuardar);       
+
+       atajoCargar=new MenuShortcut(KeyEvent.VK_C);
+       menuCargarPartida=new MenuItem(MENU_CARGAR_PARTIDA,atajoCargar);
+
+       atajoPausar=new MenuShortcut(KeyEvent.VK_P);
+       menuPausarPartida=new MenuItem(MENU_PAUSAR_PARTIDA,atajoPausar);
+
+       menuRetomarPartida=new MenuItem(MENU_RETOMAR_PARTIDA);
+       menuRetomarPartida.setEnabled(false);
+
+       atajoSalir=new MenuShortcut(KeyEvent.VK_O);
+       menuSalir=new MenuItem(MENU_SALIR,atajoSalir);
+
+
+
+       menuPartida=new Menu("Partida");
+
+       menuPartida.add(menuNuevaPartida);
+       menuPartida.add(menuGuardarPartida);
+       menuPartida.add(menuCargarPartida);
+       menuPartida.add(menuPausarPartida);
+       menuPartida.add(menuRetomarPartida);
+       menuPartida.addSeparator();
+       menuPartida.add(menuSalir);
+
+       menuCotacto=new MenuItem(MENU_CONTACTO);
+
+       menuOtros=new Menu("Otros");
+
+       menuOtros.add(menuCotacto);
+
+       barraMenu=new MenuBar();
+       barraMenu.add(menuPartida);
+       barraMenu.add(menuOtros);
+
+       this.setMenuBar(barraMenu);
+    }
+
+    /**
+     * se encarga de colocar el JLabel de la bola en el panel centrar 
+     * @param bola esta es la imagen que bola que se coloca
+     */
+    private void posicionarBola(JLabel bola) {
+        bola.setLocation(400,500);
+        this.crearEspacios(bola);
+        bola.setLocation((int)x, (int)y);
+        panelCentral.add(bola);
+    }
+
+     /**
+     * crea los espacio para para ponerlos en forma de circulo
+     * @param bola este JLabel es la imagen de la bola que utilizo para cojer el posicionamiento de x e y;
+     */
+    private void crearEspacios(JLabel bola){
+        x=X_CENTRO_ROSCO+Math.cos(i)*r;
+        y=Y_CENTRO_ROSCO+Math.sin(i)*r;
+        i+=0.24155;
+    }
+
+
+    private void crearPanelContador() {
+        textoPreguntasAcertadas=new JLabel();
+        textoPreguntasFalladas=new JLabel();
+        textoAcertadas=new JLabel("Acertadas");
+        textoFalladas=new JLabel("Falladas");
+        panelContadorPreguntas=new JPanel(new GridLayout(2, 2));
+
+        panelContadorPreguntas.add(textoAcertadas);
+        panelContadorPreguntas.add(textoFalladas);
+        panelContadorPreguntas.add(textoPreguntasAcertadas);
+        panelContadorPreguntas.add(textoPreguntasFalladas);
+
+        panelContadorPreguntas.setBounds(TAM_PANEL_CONTADOR);
+        panelContadorPreguntas.setLocation(POS_PANEL_CONTADOR);
+        panelContadorPreguntas.setBorder(borde);
+
+        this.add(panelContadorPreguntas);
+
+    }
+
+    private void pintarRosco(){
+        for (int i = 0; i < NBOLAS; i++) {
+            bolas.add(log.getBola());
+            posicionarBola(bolas.get(i));
+        }
+    }
+    
+    private void aniadirCntrlBotones(){
+        btn_comprobar.addActionListener(control);
+        btn_pasaPalabra.addActionListener(control);
+        
+    }
+
+
+/*************************************INTERFAZ*********************************************/
+    
+    public void actualizarContadorPreguntas(String acertadas,String falladas){
+        textoPreguntasAcertadas.setText(acertadas);
+        textoPreguntasFalladas.setText(falladas);        
+    }
+    
+    public void pedirALogicaComprobacion(){
+        
+    }
+    
+    public void iteracionJuego(){
+        int modeloPregunta = (int)(Math.random() * NUM_MODOS_PREGUNTAS);    
+        crearPanelPreguntas(modeloPregunta);  
+    }
+    
+    public void eliminarPanelPreguntaAntiguo(){
+        
+        panelCentral.removeAll();
+        pintarRosco();
+
+    }
+    
+    
+
+    /**
+     * Actualiza los segundos del Cronometro
+     * @param segundos son los segundos que escriben en el JLabel
+     */
+
+    public void actualizarCronometroSegundos(String segundos){
+        textoSegundos.setText(segundos);
+        this.repaint();
+    }
+
+    /**
+     * Actualiza los minutos y coloca el JLaebl de textoSegundos a 0
+     * @param minutos son los minutos que se quiere actualizar
+     */
+    public void actualizarCronometroMinutos(String minutos){
+        textoMinutos.setText(minutos);
+        textoSegundos.setText("0");
+        this.repaint();
+    }
+
+
+    public void pausarCronometro() {
+        menuRetomarPartida.setEnabled(true);
+        menuPausarPartida.setEnabled(false);
+        log.pausarJuego();
+    }
+
+    public void restaurarPartida() {
+        menuRetomarPartida.setEnabled(false);
+        menuPausarPartida.setEnabled(true);
+        log.empiezaCronometro();
+    }
+    
+    
+
+
+    private void aniadirControl() {
+        control=new CntrlVistaJuego(this,log);
+
+        menuCotacto.addActionListener(control);
+        menuSalir.addActionListener(control);
+        menuGuardarPartida.addActionListener(control);
+        menuCargarPartida.addActionListener(control);
+        menuNuevaPartida.addActionListener(control);
+        menuPausarPartida.addActionListener(control);
+        menuRetomarPartida.addActionListener(control);
+        
+        
+    }
+
+
+
+/***********************************GETTER SETTERS*****************************************/
+
+
+
+}
